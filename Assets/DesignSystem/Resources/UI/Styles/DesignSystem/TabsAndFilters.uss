@@ -6,6 +6,12 @@
 /* Tab strip (e.g. "All | Common | Rare | Epic") */
 .ds-tabs {
     flex-direction: row;
+    /* Tabs size to their labels — flex-grow shares any SLACK, but a tab never shrinks below
+       its own text. When the labels together are wider than the strip (long or localized
+       names, a wide display face) let the strip wrap to a second row instead of pushing the
+       last tabs out past its rounded edge. A strip whose parent can grow stays one row; only
+       a genuinely constrained one wraps. */
+    flex-wrap: wrap;
     background-color: var(--color-surface-elev);
     border-radius: var(--radius-md);
     padding: 4px;

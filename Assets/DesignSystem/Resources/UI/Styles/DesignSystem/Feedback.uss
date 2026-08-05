@@ -177,6 +177,13 @@
 .ds-row {
     flex-direction: row;
     align-items: center;
+    /* Wrap rather than overflow. A row of controls — a button group especially — can grow
+       wider than its container when the content exceeds what the reference layout assumed:
+       a wide display font, a long localized label. Wrapping to a new line degrades
+       gracefully where a non-wrapping row would push its last children past the container
+       edge. `.mobile .ds-row` already relied on this; making it the base keeps desktop honest
+       too (a row that fits stays one line, so nothing changes for the common case). */
+    flex-wrap: wrap;
     margin-bottom: var(--space-2);
 }
 .ds-row__gap > * {

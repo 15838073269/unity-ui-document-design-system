@@ -142,6 +142,26 @@ namespace DesignSystem.Runtime.Fx
             return mat;
         }
 
+        /// <summary>
+        /// Drop a family's shared material.
+        ///
+        /// The cache is keyed by the family OBJECT and never evicts, which is right for a fixed
+        /// book — every family lives as long as the app. A host that registers families per loaded
+        /// content retires family objects as it goes, and without this each retired one leaves its
+        /// Material and its compiled shader variants resident for the rest of the session.
+        ///
+        /// Call it alongside <see cref="DsFxRegistry.Remove"/>, and BEFORE it: the cache has no
+        /// handle to evict with once the name is gone.
+        /// </summary>
+        public static void Forget(DsFxFamily family)
+        {
+            if (family == null || !Materials.TryGetValue(family, out var mat))
+                return;
+            Materials.Remove(family);
+            if (mat != null)
+                Object.DestroyImmediate(mat);
+        }
+
         private static void EnsureTicker()
         {
             if (_ticker != null || !Application.isPlaying)

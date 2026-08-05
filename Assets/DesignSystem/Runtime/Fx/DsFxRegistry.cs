@@ -167,6 +167,31 @@ namespace DesignSystem.Runtime.Fx
         /// <summary>The family, or null when nothing answers to that name.</summary>
         public static DsFxFamily Get(string name)
             => ByName.TryGetValue(name ?? string.Empty, out var f) ? f : null;
+
+        /// <summary>
+        /// Unregister a family, returning it (or null when nothing answered to that name).
+        ///
+        /// The other half of an open table. A fixed family book never needs this — register once at
+        /// startup and every family lives as long as the app. It matters when families arrive with
+        /// CONTENT: an app that reads family definitions out of a loaded scene, save file or
+        /// AssetBundle has to take them out again when that content is replaced, or the next thing
+        /// loaded inherits a material vocabulary it never declared.
+        ///
+        /// Registering the same name twice already REPLACES the earlier entry, so a host that
+        /// deliberately overrides a shipped family should keep the original and re-register it here
+        /// on the way out.
+        ///
+        /// Pair it with <see cref="DsFxManager.Forget"/> to release the family's shared material;
+        /// this only forgets the name.
+        /// </summary>
+        public static DsFxFamily Remove(string name)
+        {
+            if (!ByName.TryGetValue(name ?? string.Empty, out var family))
+                return null;
+            ByName.Remove(name);
+            Ordered.Remove(family);
+            return family;
+        }
     }
 }
 #endif

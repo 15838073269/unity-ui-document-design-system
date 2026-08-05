@@ -68,29 +68,36 @@ namespace DesignSystem.Editor.Theming
         /// The bake-state banner. Shared so the two hosts cannot disagree on what "this theme is
         /// out of date" means — the values a designer sees and the stylesheet the runtime uses
         /// are two different things, and the gap between them is invisible without this.
+        ///
+        /// Drawn in EVERY state, including the healthy one. IMGUI hands out control IDs off a
+        /// running per-window counter, and a HelpBox spends one of them — so a banner that only
+        /// appears when it has something to say shifts every field below it on the frame it shows
+        /// up. A colour picker opened before the shift keeps writing to the ID it captured, which
+        /// now belongs to nobody: you pick a second colour and the field does not move. A banner
+        /// that is always here cannot shift anything.
         /// </summary>
         public static void DrawBakeState(ThemeData theme, bool dirty)
         {
-            var message = "Everything is OK.";
-            var type = MessageType.Info;
+            var message = "Baked and up to date. The stylesheet matches the values below.";
+            var type    = MessageType.Info;
 
             if (!theme)
             {
-                message = "Theme data is empty.";
-                type = MessageType.Error;
+                message = "No theme asset here, so there is nothing to bake.";
+                type    = MessageType.Error;
             }
             else if (!theme.StyleSheet)
             {
                 message = "This theme has never been baked, so it paints nothing at runtime. Press Save.";
-                type = MessageType.Warning;
+                type    = MessageType.Warning;
             }
             else if (dirty)
             {
                 message = "Unsaved changes. The baked stylesheet still holds the LAST SAVED values, so the " +
                           "runtime is showing something other than what you see here. Press Save to re-bake.";
-                type = MessageType.Info;
+                type    = MessageType.Info;
             }
-            
+
             EditorGUILayout.HelpBox(message, type);
         }
 

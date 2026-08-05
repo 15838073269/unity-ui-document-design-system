@@ -319,7 +319,19 @@ namespace DesignSystem.Runtime.Fx
         /// <summary>Serialize the current state into a fresh definition and apply it.</summary>
         private void Push()
         {
-            if (!_hasMaterial)
+            // Leaving the tree does not stop the work already in flight. Nothing here listens for
+            // DetachFromPanelEvent, so a detached skin keeps _hasMaterial true — and the RunAfter
+            // adoption probes below still fire, re-reading a background a frame or two after a
+            // transition or a click and pushing what they find. A host that swaps content ON a
+            // click (a material picker rebuilding its stage, a screen switcher) detaches elements
+            // inside exactly that window, so the probe lands on a target that is no longer on a
+            // panel. Assigning unityMaterial there asks the renderer to build render data for an
+            // element with no render tree node: it surfaces as "The state of the provided
+            // MeshGenerationNode is invalid (entry is null)" plus a DPI warning from the style
+            // pass, both raised inside UI Toolkit with nothing in the frame pointing back here.
+            // Bailing costs a detached element nothing — OnAttach re-reads geometry and re-pushes
+            // if it ever comes back.
+            if (!_hasMaterial || target?.panel == null)
                 return;
             var def = MaterialDefinition.FromMaterial(_material);
             var v = _spec.Variant;
@@ -484,12 +496,17 @@ namespace DesignSystem.Runtime.Fx
             _press = Retarget(_press, 0f, 0.28f, DsFxManager.Now);
             Push();
             // A click is how a control changes state (a tab activates, a nav item selects).
-            // Chase the state's token recolor once the USS transition settles. The
-            // TransitionEnd path cannot see it when a forced inline background pins the
-            // cascade (transparent ghost controls, inactive tabs) — this path can, because
-            // RefreshAdopt unmasks the forced background before reading.
+            // Chase the state's token recolor. The TransitionEnd path cannot see it when a
+            // forced inline background pins the cascade (transparent ghost controls, inactive
+            // tabs) — this path can, because RefreshAdopt unmasks the forced background before
+            // reading. Use a SHORT delay, not the default toggle-length settle: a click is a
+            // snappy interaction and the activating tab's accent must land fast. All this wait
+            // has to cover is the state class arriving (a frame or two) — RefreshAdopt then
+            // unmasks, the accent transitions in over --transition-fast, and its TransitionEnd
+            // re-read lands the final color. The old ~380ms settle just left the tab looking
+            // inactive for half a second after the click.
             if (_spec.AdoptColor)
-                RefreshAdopt();
+                RefreshAdopt(80);
         }
 
         private static readonly StylePropertyName BackgroundColorProp = "background-color";
@@ -506,6 +523,19 @@ namespace DesignSystem.Runtime.Fx
             if (!_hasMaterial || evt.target != target || !evt.AffectsProperty(BackgroundColorProp))
                 return;
             _adoptSource = target.resolvedStyle.backgroundColor;
+            // A state swap can transition the background all the way back to transparent: the tab
+            // (or nav item) that just lost `is-active` drops from its accent token to
+            // rgba(0,0,0,0). A FillMode-0 material needs solid geometry to shade, so an element
+            // that was never force-backed (it started active, opaque) and now arrives here
+            // transparent would render its fill as nothing — the de-activated tab goes flat while
+            // its still-inactive siblings keep their material. Restore the same forced-white
+            // underlay the attach-time re-read and RefreshAdopt use; adopting a chroma-less white
+            // is a no-op, so the fill stays the pure raised palette a non-active tab should show.
+            if (_spec.FillMode == 0 && _adoptSource.a <= 0.001f && !_forcedBackground)
+            {
+                target.style.backgroundColor = Color.white;
+                _forcedBackground = true;
+            }
             Push();
         }
 
