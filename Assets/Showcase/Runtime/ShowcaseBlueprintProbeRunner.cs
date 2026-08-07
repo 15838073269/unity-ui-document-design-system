@@ -60,7 +60,7 @@ namespace DesignSystemHost
                 // The showcase builds itself over several frames (documents, fonts, HUD).
                 yield return new WaitForSecondsRealtime(4f);
 
-                var docs = UnityEngine.Object.FindObjectsByType<UIDocument>(FindObjectsSortMode.None);
+                var docs = UnityEngine.Object.FindObjectsByType<UIDocument>();
                 Debug.Log($"[showcase probe] {docs.Length} UIDocument(s) in the scene");
 
                 DropdownField dropdown = null;
@@ -136,7 +136,7 @@ namespace DesignSystemHost
             /// </summary>
             private IEnumerator WorldModeProof(DropdownField dropdown)
             {
-                var corridor = UnityEngine.Object.FindFirstObjectByType<WorldSpaceCorridor>();
+                var corridor = UnityEngine.Object.FindAnyObjectByType<WorldSpaceCorridor>();
                 if (corridor == null)
                 {
                     Problem("no WorldSpaceCorridor in the scene — cannot test the mode toggle.");

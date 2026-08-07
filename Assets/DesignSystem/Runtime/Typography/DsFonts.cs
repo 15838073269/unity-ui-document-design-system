@@ -222,12 +222,26 @@ namespace DesignSystem.Runtime.Typography
         /// </summary>
         public static bool TryEnableShaping(FontAsset face)
         {
+            // The two pragma'd CS0618s below are the method, not an oversight in it.
+            // `characterTable` and `AtlasPopulationMode.Static` are the two members the summary
+            // above walks through: the guard inside EnsureNativeFontAssetIsCreated keys on
+            // exactly those, and the deprecation's own advice, "use Dynamic or DynamicOS
+            // instead", names the state that guard REJECTS. There is no non-deprecated way to
+            // reach a native face from a path, so both are suppressed rather than migrated —
+            // each on its own line, so a NEW deprecation in this method still gets to warn.
+            //
+            // The day Unity removes `characterTable` this stops COMPILING, and that is the right
+            // failure. Everything else in here degrades quietly (the reflection below is wrapped
+            // in a catch that falls back to the standard generator), so shaping disappearing in
+            // silence is precisely the outcome worth spending a build error to prevent.
             if (!face) return false;
             if (CanShape(face)) return true;
 
             // Too late: with a character table in hand it reads as a baked Static asset and the
             // first guard throws it out.
+#pragma warning disable CS0618
             if (face.characterTable.Count > 0) return false;
+#pragma warning restore CS0618
             if (EnsureNative == null || NativeHandle == null) return false;
 
             int complaints = 0;
@@ -241,7 +255,9 @@ namespace DesignSystem.Runtime.Typography
 
             try
             {
+#pragma warning disable CS0618
                 face.atlasPopulationMode = AtlasPopulationMode.Static;
+#pragma warning restore CS0618
                 EnsureNative.Invoke(face, null);
 
                 // A pointer on its own is not proof, because native can hand back a live pointer

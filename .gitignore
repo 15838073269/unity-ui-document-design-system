@@ -134,8 +134,9 @@ UIElementsSchema/
 # should reuse rather than regenerate.
 # Design System theme bake scratch folder.
 # ThemeBaker and the Theme Configurator preview write a temp .uss here, let Unity
-# compile it, copy the result into the theme asset, and delete the file again. The
-# folder itself is disposable.
+# compile it, copy the result into the theme asset, and delete the file again.
+# ThemeBaker now removes the folder itself as soon as it empties out, so these two
+# lines only ever catch one stranded by an editor that died mid-bake.
 /[Aa]ssets/_DesignSystemTemp/
 /[Aa]ssets/_DesignSystemTemp.meta
 

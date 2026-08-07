@@ -888,6 +888,14 @@ namespace DesignSystem.Runtime.Fx
             var tf = el as TextField ?? el.Q<TextField>();
             if (tf != null)
             {
+                // CS0618 sends these to --unity-cursor-color and --unity-selection-color, which is
+                // right for a fixed value and is what Inputs.uss already does. It cannot work here.
+                // Both colours are computed per element from the tone this walk just resolved, and
+                // UI Toolkit gives C# no way to write a CUSTOM USS property on a single element:
+                // IStyle has no slot for one and ICustomStyle is read-only. ctx.Set also has to put
+                // the old values BACK, which needs a getter that USS does not offer either. So the
+                // deprecated accessors stay until a runtime equivalent exists.
+#pragma warning disable CS0618
                 // textSelection has no "unset" — put back what was there.
                 var prevCaret = tf.textSelection.cursorColor;
                 var prevSel = tf.textSelection.selectionColor;
@@ -896,6 +904,7 @@ namespace DesignSystem.Runtime.Fx
                 ctx.Set(
                     () => { tf.textSelection.cursorColor = pal.Caret; tf.textSelection.selectionColor = sel; },
                     () => { tf.textSelection.cursorColor = prevCaret; tf.textSelection.selectionColor = prevSel; });
+#pragma warning restore CS0618
             }
 
             // The dropdown chevron is a VectorImage background — stamp it.

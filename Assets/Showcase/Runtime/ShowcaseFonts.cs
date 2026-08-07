@@ -612,11 +612,18 @@ namespace Showcase.Runtime
 
                         var hit = DsFonts.Coverage(fa, sample ?? "", out int missing);
 
+                        // CS0618 on characterTable: kept deliberately. ATG does not need the table,
+                        // but DsFonts.TryEnableShaping does, in reverse — an EMPTY table is the
+                        // entry fee for enabling shaping, so the count is exactly what tells you
+                        // whether a font is still eligible or already past the point of no return.
+                        // That makes it the most useful number in this diagnostic, not a leftover.
+#pragma warning disable CS0618
                         Debug.Log(
                             $"[dsfont] {script.Family}: mode={fa.atlasPopulationMode} " +
                             $"shapes={(DsFonts.CanShape(fa) ? "yes (advanced)" : "no (standard)")} " +
                             $"draws={(hit.Covered ? hit.Font.name : "NOTHING")} " +
                             $"missing={missing} glyphs={fa.characterTable.Count}");
+#pragma warning restore CS0618
                     }
 
                     SyncAll();   // it renders now, so rebuild the row and let it draw

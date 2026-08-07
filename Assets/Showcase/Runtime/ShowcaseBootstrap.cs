@@ -783,7 +783,7 @@ namespace Showcase.Runtime
                 Debug.Log("[ds fx diag] autopilot: Blueprint selected");
                 DsFxManager.RunAfter(3f, () =>
                 {
-                    var corridor = Object.FindFirstObjectByType<WorldSpaceCorridor>();
+                    var corridor = Object.FindAnyObjectByType<WorldSpaceCorridor>();
                     if (corridor == null) { Debug.LogWarning("[ds fx diag] autopilot: no corridor in scene"); return; }
                     corridor.Show();
                     Debug.Log("[ds fx diag] autopilot: world mode entered");

@@ -169,7 +169,11 @@ namespace DesignSystem.Editor.Theming
 
         private void OnDestroy()
         {
-            DeletePreviewSheet();
+            // CanPrompt is also the "this is a real close, not a domain reload" signal. On a
+            // reload the window comes straight back and refills the scratch folder, so removing
+            // it there would only churn the AssetDatabase at the one moment this pair of files
+            // has learned not to.
+            DeletePreviewSheet(removeFolder: ThemeDataGUI.CanPrompt);
 
             if (!_theme) return;
             if (!_touched && !EditorUtility.IsDirty(_theme)) return;
@@ -273,10 +277,15 @@ namespace DesignSystem.Editor.Theming
             return PreviewUxmlGuid;
         }
 
-        private static void DeletePreviewSheet()
+        private static void DeletePreviewSheet(bool removeFolder)
         {
             if (AssetDatabase.LoadAssetAtPath<StyleSheet>(PreviewUssPath))
                 AssetDatabase.DeleteAsset(PreviewUssPath);
+
+            // This window is usually the last thing keeping the shared scratch folder alive, so
+            // it goes out with the sheet. ThemeBaker only removes it if it is genuinely empty,
+            // which means a bake running alongside this keeps its own file safe.
+            if (removeFolder) ThemeBaker.TryRemoveTempFolder();
         }
 
         private static Label Hint(string text) =>

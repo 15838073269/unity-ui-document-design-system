@@ -25,7 +25,12 @@
     -unity-text-align: middle-center;
     transition-property: background-color, color, scale, border-color;
     transition-duration: var(--transition-fast);
-    cursor: link; /* Unity treats this as a clickable */
+    /* No `cursor: link` here: named cursors only exist in the editor.
+       Runtime panels route every MouseOver through CursorManager.SetCursor,
+       which logs "Runtime cursors other than the default cursor need to be
+       defined using a texture" per hover — pure log spam since the cursor
+       never actually changes. Ship a texture-based cursor if we ever want
+       a real pointer affordance. */
 }
 
 .ds-btn:disabled {

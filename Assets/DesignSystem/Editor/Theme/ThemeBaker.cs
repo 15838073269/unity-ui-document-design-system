@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using DesignSystem.Editor.Typography;
@@ -36,6 +37,10 @@ namespace DesignSystem.Editor.Theming
         /// Configurator's live preview. The temp .uss used to be written NEXT TO the theme
         /// asset, so a crash mid-bake left a stray stylesheet inside the package itself, ready
         /// for someone to commit by accident.
+        ///
+        /// It exists only while something is using it. <see cref="TryRemoveTempFolder"/> takes it
+        /// away as soon as the last scratch file goes, and <see cref="EnsureTempFolder"/> brings
+        /// it back on the next bake or preview push.
         /// </summary>
         public const string TempFolder = "Assets/_DesignSystemTemp";
 
@@ -107,11 +112,13 @@ namespace DesignSystem.Editor.Theming
             }
             finally
             {
-                // The FILE goes, the folder stays. The Theme Configurator's live preview keeps
-                // its own sheet in here, and pulling the folder out from under it mid-session
-                // would leave the preview pointing at a dead asset.
                 if (AssetDatabase.LoadAssetAtPath<StyleSheet>(TempAsset))
                     AssetDatabase.DeleteAsset(TempAsset);
+
+                // And the folder with it, once it has nothing left in it. It used to survive
+                // every bake, so a project that baked a theme once carried an empty directory
+                // and an orphan .meta from then on.
+                TryRemoveTempFolder();
 
                 AssetDatabase.SaveAssets();
             }
@@ -122,8 +129,69 @@ namespace DesignSystem.Editor.Theming
         /// <summary>Creates the shared scratch folder if it is not there yet.</summary>
         public static void EnsureTempFolder()
         {
+            if (AssetDatabase.IsValidFolder(TempFolder)) return;
+
+            // A directory on disk that the database has not imported would send CreateFolder
+            // down its collision path, which invents "_DesignSystemTemp 1" and leaves both
+            // writers pointing at a path that does not exist. That mismatch was unreachable
+            // while the folder was created once per project; now that it is removed whenever
+            // it empties out, this runs on every bake and is worth ruling out.
+            if (Directory.Exists(TempFolder))
+                AssetDatabase.ImportAsset(TempFolder, ImportAssetOptions.ForceSynchronousImport);
+
             if (!AssetDatabase.IsValidFolder(TempFolder))
                 AssetDatabase.CreateFolder("Assets", "_DesignSystemTemp");
+        }
+
+        /// <summary>
+        /// Deletes the scratch folder once nothing is left in it, so a folder named "temp" is
+        /// actually temporary. Unity cannot compile USS outside the AssetDatabase, so the scratch
+        /// file has to sit under <c>Assets/</c> while a bake or a live preview runs, but nothing
+        /// needs it to stay behind afterwards.
+        ///
+        /// Only ever deletes an EMPTY folder. The Theme Configurator keeps <c>__preview.uss</c>
+        /// in here for as long as its window is open, and pulling the folder out from under it
+        /// would leave the preview pointing at a dead asset.
+        /// </summary>
+        public static void TryRemoveTempFolder()
+        {
+            if (!AssetDatabase.IsValidFolder(TempFolder)) return;
+
+            // .meta files do not count towards "in use": a folder holding nothing but the
+            // metadata of assets that are already gone is empty by any useful definition, and
+            // DeleteAsset takes them with it.
+            foreach (var entry in Directory.GetFileSystemEntries(TempFolder))
+                if (!entry.EndsWith(".meta", StringComparison.OrdinalIgnoreCase))
+                    return;
+
+            AssetDatabase.DeleteAsset(TempFolder);
+        }
+
+        /// <summary>
+        /// Clears a scratch folder stranded by an earlier session, including one left by a
+        /// version of this package that never removed it.
+        ///
+        /// <c>__bake.uss</c> only exists inside a single synchronous <see cref="BakeMany"/> call
+        /// that deletes it in a finally block, so finding one at load time means the editor died
+        /// mid-bake and nothing holds a reference to it. <c>__preview.uss</c> is deliberately left
+        /// alone: a Theme Configurator restored with the window layout owns that file, and it is
+        /// rewritten on the next edit anyway.
+        /// </summary>
+        [InitializeOnLoadMethod]
+        private static void SweepStrandedTempFolder()
+        {
+            // delayCall rather than the load callback itself. Static constructors run while the
+            // AssetDatabase is still mid-refresh, and this file's header records what mutating it
+            // at the wrong moment costs.
+            EditorApplication.delayCall += () =>
+            {
+                if (!AssetDatabase.IsValidFolder(TempFolder)) return;
+
+                if (AssetDatabase.LoadAssetAtPath<StyleSheet>(TempAsset))
+                    AssetDatabase.DeleteAsset(TempAsset);
+
+                TryRemoveTempFolder();
+            };
         }
 
         /// <summary>
