@@ -937,7 +937,14 @@ namespace DesignSystem.Runtime.Behaviour
             if (!s_componentTypeMap.TryGetValue(typeof(TComponent), out var runtimeType))
                 return;
 
+            // The parameterless overload only exists from 6000.4, which is also where the
+            // FindObjectsSortMode overload turns CS0618: each branch is the warning-free
+            // form for its range (hence 6000_4 here, not this package's usual 6000_5).
+#if UNITY_6000_4_OR_NEWER
             var docs = FindObjectsByType<TComponent>();
+#else
+            var docs = FindObjectsByType<TComponent>(FindObjectsSortMode.None);
+#endif
             foreach (var doc in docs)
             {
                 if (doc == null || doc.gameObject.GetComponent(runtimeType) != null)

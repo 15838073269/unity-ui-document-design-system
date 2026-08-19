@@ -4,6 +4,14 @@ All notable changes to this project will be documented here.
 
 This project loosely follows [Semantic Versioning](https://semver.org/) and uses the [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format.
 
+## [1.5.3] — 2026-08-19
+
+One line, and the floor under it. The manifest promises `"unity": "6000.0"`; the code, since July, required 6000.4. Nothing in a 6000.5 project ever compiles the editors the manifest still names, so the newest editor hid the break from the person developing on it and served it to everyone below. Thanks to [@slimshader](https://github.com/slimshader) for the report and [@FlowingFrost](https://github.com/FlowingFrost) for the report and the fix.
+
+### Fixed
+
+- **The runtime did not compile below Unity 6000.4.** `DesignSystemBehaviourBase.AttachToAll` called the parameterless `FindObjectsByType<TComponent>()`, which first shipped in 6000.4 as the replacement for the `FindObjectsSortMode` overloads deprecated in that same release. On 6000.0 through 6000.3 (6000.3 LTS included) the line is `error CS1501: No overload for method 'FindObjectsByType' takes 0 arguments`, so importing the package broke the project's compile outright, on every release since [1.5.0]. The call is now split on `UNITY_6000_4_OR_NEWER`: newer editors keep the parameterless form, older ones compile the `FindObjectsSortMode.None` overload they have always had, and since the deprecation also starts at 6000.4, each branch is the warning-free form for its range. Note the symbol is `6000_4`, not this package's usual `6000_5`; both the new overload and the deprecation of the old one land in 6000.4, verified by compiling probes against 6000.3.8f1, 6000.4.0f1 and 6000.5.2f1. Behaviour is unchanged everywhere: both forms return active objects, unsorted. Reported in [#11](https://github.com/sinanata/unity-ui-toolkit-design-system/issues/11) and [#12](https://github.com/sinanata/unity-ui-toolkit-design-system/issues/12); fix proposed in [#13](https://github.com/sinanata/unity-ui-toolkit-design-system/pull/13), landed with the boundary corrected to 6000.4.
+
 ## [1.5.2] — 2026-08-07
 
 Two reports from outside, and both are about something that outstays the moment it was written for. A cursor declaration only an editor panel can honour, still asking a runtime panel to honour it on every hover. A scratch folder needed for the length of one bake, still sitting in the project months later. Neither breaks anything, and that is exactly why both survived this long: the cost of each is noise, and noise is the thing a maintainer stops seeing and a newcomer sees immediately.
