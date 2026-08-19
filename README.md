@@ -15,6 +15,8 @@ Built for and battle-tested in <strong><a href="https://leapoflegends.com">Leap 
 
 > **Using an AI coding assistant?** This repo ships an [`AGENTS.md`](AGENTS.md) and an [`llms.txt`](llms.txt) so Copilot, Cursor, Codex, and Claude Code use the `ds-` classes and tokens correctly instead of guessing.
 
+> **Using Unreal?** There is an Unreal version of the same approach from the same author: [unreal-umg-design-system](https://github.com/sinanata/unreal-umg-design-system)
+
 ---
 
 ## Contents
